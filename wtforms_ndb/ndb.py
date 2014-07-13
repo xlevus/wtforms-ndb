@@ -12,53 +12,53 @@ Example usage:
 
 .. code-block:: python
 
-   from google.appengine.ext import ndb
-   from wtforms.ext.appengine.ndb import model_form
+    from google.appengine.ext import ndb
+    from wtforms.ext.appengine.ndb import model_form
 
-   # Define an example model and add a record.
-   class Contact(ndb.Model):
-       name = ndb.StringProperty(required=True)
-       city = ndb.StringProperty()
-       age = ndb.IntegerProperty(required=True)
-       is_admin = ndb.BooleanProperty(default=False)
+    # Define an example model and add a record.
+    class Contact(ndb.Model):
+        name = ndb.StringProperty(required=True)
+        city = ndb.StringProperty()
+        age = ndb.IntegerProperty(required=True)
+        is_admin = ndb.BooleanProperty(default=False)
 
-   new_entity = Contact(key_name='test', name='Test Name', age=17)
-   new_entity.put()
+    new_entity = Contact(key_name='test', name='Test Name', age=17)
+    new_entity.put()
 
-   # Generate a form based on the model.
-   ContactForm = model_form(Contact)
+    # Generate a form based on the model.
+    ContactForm = model_form(Contact)
 
-   # Get a form populated with entity data.
-   entity = Contact.get_by_key_name('test')
-   form = ContactForm(obj=entity)
+    # Get a form populated with entity data.
+    entity = Contact.get_by_key_name('test')
+    form = ContactForm(obj=entity)
 
 Properties from the model can be excluded from the generated form, or it can
 include just a set of properties. For example:
 
 .. code-block:: python
 
-   # Generate a form based on the model, excluding 'city' and 'is_admin'.
-   ContactForm = model_form(Contact, exclude=('city', 'is_admin'))
+    # Generate a form based on the model, excluding 'city' and 'is_admin'.
+    ContactForm = model_form(Contact, exclude=('city', 'is_admin'))
 
-   # or...
+    # or...
 
-   # Generate a form based on the model, only including 'name' and 'age'.
-   ContactForm = model_form(Contact, only=('name', 'age'))
+    # Generate a form based on the model, only including 'name' and 'age'.
+    ContactForm = model_form(Contact, only=('name', 'age'))
 
 The form can be generated setting field arguments:
 
 .. code-block:: python
 
-   ContactForm = model_form(Contact, only=('name', 'age'), field_args={
-       'name': {
-           'label': 'Full name',
-           'description': 'Your name',
-       },
-       'age': {
-           'label': 'Age',
-           'validators': [validators.NumberRange(min=14, max=99)],
-       }
-   })
+    ContactForm = model_form(Contact, only=('name', 'age'), field_args={
+        'name': {
+            'label': 'Full name',
+            'description': 'Your name',
+        },
+        'age': {
+            'label': 'Age',
+            'validators': [validators.NumberRange(min=14, max=99)],
+        }
+    })
 
 The class returned by ``model_form()`` can be used as a base class for forms
 mixing non-model fields and/or other model forms. For example:
@@ -71,42 +71,39 @@ FormField arguments, and FieldList arguments (if repeated).
 
 .. code-block:: python
 
-   # Generate a form based on the model.
-   BaseContactForm = model_form(Contact)
+    # Generate a form based on the model.
+    BaseContactForm = model_form(Contact)
 
-   # Generate a form based on other model.
-   ExtraContactForm = model_form(MyOtherModel)
+    # Generate a form based on other model.
+    ExtraContactForm = model_form(MyOtherModel)
 
-   class ContactForm(BaseContactForm):
-       # Add an extra, non-model related field.
-       subscribe_to_news = f.BooleanField()
+    class ContactForm(BaseContactForm):
+        # Add an extra, non-model related field.
+        subscribe_to_news = f.BooleanField()
 
-       # Add the other model form as a subform.
-       extra = f.FormField(ExtraContactForm)
+        # Add the other model form as a subform.
+        extra = f.FormField(ExtraContactForm)
 
 The class returned by ``model_form()`` can also extend an existing form
 class:
 
 .. code-block:: python
 
-   class BaseContactForm(Form):
-       # Add an extra, non-model related field.
-       subscribe_to_news = f.BooleanField()
+    class BaseContactForm(Form):
+        # Add an extra, non-model related field.
+        subscribe_to_news = f.BooleanField()
 
-   # Generate a form based on the model.
-   ContactForm = model_form(Contact, base_class=BaseContactForm)
-
-
-
-
+    # Generate a form based on the model.
+    ContactForm = model_form(Contact, base_class=BaseContactForm)
 """
+
 from wtforms import Form, validators, fields as f
 from wtforms.compat import string_types
 
 from .fields import GeoPtPropertyField,\
-      KeyPropertyField, RepeatedKeyPropertyField,\
-      StringListPropertyField, IntegerListPropertyField, \
-      PrefetchedKeyPropertyField, RepeatedPrefetchedKeyPropertyField
+    KeyPropertyField, RepeatedKeyPropertyField,\
+    StringListPropertyField, IntegerListPropertyField, \
+    PrefetchedKeyPropertyField, RepeatedPrefetchedKeyPropertyField
 
 
 def get_TextField(kwargs):
@@ -158,13 +155,14 @@ class ModelConverterBase(object):
 
         prop_type_name = type(prop).__name__
 
-        #check for generic property
+        # check for generic property
         if(prop_type_name == "GenericProperty"):
-            #try to get type from field args
+            # try to get type from field args
             generic_type = field_args.get("type")
             if generic_type:
                 prop_type_name = field_args.get("type")
-            #if no type is found, the generic property uses string set in convert_GenericProperty
+            # if no type is found, the generic property uses string set in
+            # convert_GenericProperty
 
         kwargs = {
             'label': prop._code_name.replace('_', ' ').title(),
@@ -180,7 +178,7 @@ class ModelConverterBase(object):
         if kwargs.get('choices', None) or prop._choices:
             # Use choices in a select field.
             if not kwargs.get('choices', None):
-               kwargs['choices'] =  [(v,v) for v in sorted(prop._choices)]
+                kwargs['choices'] = [(v, v) for v in sorted(prop._choices)]
 
             if prop._repeated:
                 return f.SelectMultipleField(**kwargs)
@@ -201,55 +199,59 @@ class ModelConverter(ModelConverterBase):
 
     Default conversions between properties and fields:
 
-    +====================+===================+==============+==================+
-    | Property subclass  | Field subclass    | datatype     | notes            |
-    +====================+===================+==============+==================+
-    | StringProperty     | TextField         | unicode      | TextArea         | repeated support
-    |                    |                   |              | if multiline     |
-    +--------------------+-------------------+--------------+------------------+
-    | BooleanProperty    | BooleanField      | bool         |                  |
-    +--------------------+-------------------+--------------+------------------+
-    | IntegerProperty    | IntegerField      | int or long  |                  | repeated support
-    +--------------------+-------------------+--------------+------------------+
-    | FloatProperty      | TextField         | float        |                  |
-    +--------------------+-------------------+--------------+------------------+
-    | DateTimeProperty   | DateTimeField     | datetime     | skipped if       |
-    |                    |                   |              | auto_now[_add]   |
-    +--------------------+-------------------+--------------+------------------+
-    | DateProperty       | DateField         | date         | skipped if       |
-    |                    |                   |              | auto_now[_add]   |
-    +--------------------+-------------------+--------------+------------------+
-    | TimeProperty       | DateTimeField     | time         | skipped if       |
-    |                    |                   |              | auto_now[_add]   |
-    +--------------------+-------------------+--------------+------------------+
-    | TextProperty       | TextAreaField     | unicode      |                  |
-    +--------------------+-------------------+--------------+------------------+
-    | GeoPtProperty      | TextField         | db.GeoPt     |                  |
-    +--------------------+-------------------+--------------+------------------+
-    | KeyProperty        | KeyProperyField   | ndb.Key      |                  | prefetch, repeated support.
-    +--------------------+-------------------+--------------+------------------+
-    | BlobKeyProperty    | None              | ndb.BlobKey  | always skipped   |
-    +--------------------+-------------------+--------------+------------------+
-    | UserProperty       | None              | users.User   | always skipped   |
-    +--------------------+-------------------+--------------+------------------+
-    | StructuredProperty | FormField         | ndb.Model    | FieldList if     |
-    |                    |                   |              | repeated         |
-    +--------------------+-------------------+--------------+------------------+
-    | LocalStructuredPro | FormField         | ndb.Model    | FieldList        |
-    |                    |                   |              | repeated         |
-    +--------------------+-------------------+--------------+------------------+
-    | JsonProperty       | TextField         | unicode      |                  |
-    +--------------------+-------------------+--------------+------------------+
-    | PickleProperty     | None              | bytedata     | always skipped   |
-    +--------------------+-------------------+--------------+------------------+
-    | GenericProperty    | None              | generic      | always skipped   |
-    +--------------------+-------------------+--------------+------------------+
-    | ComputedProperty   | none              |              | always skipped   |
-    +====================+===================+==============+==================+
+    +====================+===================+==============+=================+
+    | Property subclass  | Field subclass    | datatype     | notes           |
+    +====================+===================+==============+=================+
+    | StringProperty     | TextField         | unicode      | TextArea        |
+    |                    |                   |              | if multiline    |
+    +--------------------+-------------------+--------------+-----------------+
+    | BooleanProperty    | BooleanField      | bool         |                 |
+    +--------------------+-------------------+--------------+-----------------+
+    | IntegerProperty    | IntegerField      | int or long  | repeated support|
+    +--------------------+-------------------+--------------+-----------------+
+    | FloatProperty      | TextField         | float        |                 |
+    +--------------------+-------------------+--------------+-----------------+
+    | DateTimeProperty   | DateTimeField     | datetime     | skipped if      |
+    |                    |                   |              | auto_now[_add]  |
+    +--------------------+-------------------+--------------+-----------------+
+    | DateProperty       | DateField         | date         | skipped if      |
+    |                    |                   |              | auto_now[_add]  |
+    +--------------------+-------------------+--------------+-----------------+
+    | TimeProperty       | DateTimeField     | time         | skipped if      |
+    |                    |                   |              | auto_now[_add]  |
+    +--------------------+-------------------+--------------+-----------------+
+    | TextProperty       | TextAreaField     | unicode      |                 |
+    +--------------------+-------------------+--------------+-----------------+
+    | GeoPtProperty      | TextField         | db.GeoPt     |                 |
+    +--------------------+-------------------+--------------+-----------------+
+    | KeyProperty        | KeyProperyField   | ndb.Key      | prefetch,       |
+    |                    |                   |              | repeated        |
+    +--------------------+-------------------+--------------+-----------------+
+    | BlobKeyProperty    | None              | ndb.BlobKey  | always skipped  |
+    +--------------------+-------------------+--------------+-----------------+
+    | UserProperty       | None              | users.User   | always skipped  |
+    +--------------------+-------------------+--------------+-----------------+
+    | StructuredProperty | FormField         | ndb.Model    | FieldList if    |
+    |                    |                   |              | repeated        |
+    +--------------------+-------------------+--------------+-----------------+
+    | LocalStructuredPro | FormField         | ndb.Model    | FieldList       |
+    |                    |                   |              | repeated        |
+    +--------------------+-------------------+--------------+-----------------+
+    | JsonProperty       | TextField         | unicode      |                 |
+    +--------------------+-------------------+--------------+-----------------+
+    | PickleProperty     | None              | bytedata     | always skipped  |
+    +--------------------+-------------------+--------------+-----------------+
+    | GenericProperty    | None              | generic      | always skipped  |
+    +--------------------+-------------------+--------------+-----------------+
+    | ComputedProperty   | none              |              | always skipped  |
+    +====================+===================+==============+=================+
 
     """
     # Don't automatically add a required validator for these properties
-    NO_AUTO_REQUIRED = frozenset(['ListProperty', 'StringListProperty', 'BooleanProperty'])
+    NO_AUTO_REQUIRED = frozenset([
+        'ListProperty',
+        'StringListProperty',
+        'BooleanProperty'])
 
     def convert_StringProperty(self, model, prop, kwargs):
         """Returns a form field for a ``ndb.StringProperty``."""
@@ -257,6 +259,8 @@ class ModelConverter(ModelConverterBase):
             return StringListPropertyField(**kwargs)
         kwargs['validators'].append(validators.length(max=500))
         return get_TextField(kwargs)
+
+    fallback_converter = convert_StringProperty
 
     def convert_BooleanProperty(self, model, prop, kwargs):
         """Returns a form field for a ``ndb.BooleanProperty``."""
@@ -309,9 +313,9 @@ class ModelConverter(ModelConverterBase):
         form_args.setdefault('converter', self)
         form = model_form(model, **form_args)
 
-        field = f.FormField(form, default=model, **kwargs.get('FIELD',{}))
+        field = f.FormField(form, default=model, **kwargs.get('FIELD', {}))
         if prop._repeated:
-           field = f.FieldList(field, **kwargs.get('LIST', {}))
+            field = f.FieldList(field, **kwargs.get('LIST', {}))
 
         return field
 
@@ -365,13 +369,18 @@ class ModelConverter(ModelConverterBase):
                 reference_class = prop._reference_class
 
             if isinstance(reference_class, string_types):
-                # reference class is a string, try to retrieve the model object.
-                mod = __import__(model.__module__, None, None, [reference_class], 0)
+                # reference class is a string, try to retrieve the model
+                # object.
+                mod = __import__(
+                    model.__module__,
+                    None,
+                    None,
+                    [reference_class], 0)
+
                 reference_class = getattr(mod, reference_class)
             kwargs['reference_class'] = reference_class
         kwargs.setdefault('allow_blank', not prop._required)
         return field(**kwargs)
-
 
 
 def model_fields(model, only=None, exclude=None, field_args=None,
@@ -401,7 +410,9 @@ def model_fields(model, only=None, exclude=None, field_args=None,
     # Get the field names we want to include or exclude, starting with the
     # full list of model properties.
     props = model._properties
-    field_names = list(x[0] for x in sorted(props.items(), key=lambda x: x[1]._creation_counter))
+    field_names = list(
+        x[0] for x in
+        sorted(props.items(), key=lambda x: x[1]._creation_counter))
 
     if only:
         field_names = list(f for f in only if f in field_names)
@@ -418,8 +429,8 @@ def model_fields(model, only=None, exclude=None, field_args=None,
     return field_dict
 
 
-def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
-               converter=None):
+def model_form(model, base_class=Form, only=None, exclude=None,
+               field_args=None, converter=None):
     """
     Creates and returns a dynamic ``wtforms.Form`` class for a given
     ``ndb.Model`` class. The form class can be used as it is or serve as a base
@@ -449,3 +460,4 @@ def model_form(model, base_class=Form, only=None, exclude=None, field_args=None,
     # Return a dynamically created form class, extending from base_class and
     # including the created fields as properties.
     return type(model._get_kind() + 'Form', (base_class,), field_dict)
+
