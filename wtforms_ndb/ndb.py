@@ -152,17 +152,7 @@ class ModelConverterBase(object):
         :param field_args:
             Optional keyword arguments to construct the field.
         """
-
-        prop_type_name = type(prop).__name__
-
-        # check for generic property
-        if(prop_type_name == "GenericProperty"):
-            # try to get type from field args
-            generic_type = field_args.get("type")
-            if generic_type:
-                prop_type_name = field_args.get("type")
-            # if no type is found, the generic property uses string set in
-            # convert_GenericProperty
+        prop_type_name = self.get_prop_type_name(prop, field_args)
 
         kwargs = {
             'label': prop._code_name.replace('_', ' ').title(),
@@ -186,11 +176,121 @@ class ModelConverterBase(object):
                 return f.SelectField(**kwargs)
 
         else:
-            converter = self.converters.get(prop_type_name, None)
-            if converter is not None:
-                return converter(model, prop, kwargs)
-            else:
-                return self.fallback_converter(model, prop, kwargs)
+            converter = self.get_converter(
+                prop_type_name,
+                prop,
+                field_args)
+
+            return converter(model, prop, kwargs)
+
+    def get_prop_type_name(self, prop, field_args):
+        """
+        Gets the type-name of the property. In some cases the name might
+        not match the classes __name__ value (e.g. GenericProperty)
+        """
+        prop_type_name = type(prop).__name__
+
+        # check for generic property
+        if prop_type_name == "GenericProperty":
+            # try to get type from field args
+            if 'type' in field_args:
+                prop_type_name = field_args.get("type")
+            # if no type is found, the generic property uses string set in
+            # convert_GenericProperty
+        return prop_type_name
+
+    def get_converter(self, prop_type_name, prop, field_args):
+        """
+        Returns the converter function for the given parameters.
+        Converter function should take three arguments: `model`, `property`
+        and `field_args`.
+        """
+        c = self.converters.get(prop_type_name, None)
+        if c is None:
+            c = self.fallback_converter
+        return c
+
+    @classmethod
+    def fields_for_model(cls, model, only=None, exclude=None, field_args=None,
+                         converters=None):
+        """
+        Extracts and returns a dictionary of form fields for a given
+        ``db.Model`` class.
+
+        :param model:
+            The ``db.Model`` class to extract fields from.
+        :param only:
+            An optional iterable with the property names that should be
+            included in the form. Only these properties will have fields.
+        :param exclude:
+            An optional iterable with the property names that should be i
+            excluded from the form. All other properties will have fields.
+        :param field_args:
+            An optional dictionary of field names mapping to a keyword
+            arguments used to construct each field object.
+        :param converter:
+            A converter to generate the fields based on the model properties.
+            If not set, ``ModelConverter`` is used.
+        """
+        field_args = field_args or {}
+
+        # Get the field names we want to include or exclude, starting with the
+        # full list of model properties.
+        props = model._properties
+        field_names = list(
+            x[0] for x in
+            sorted(props.items(), key=lambda x: x[1]._creation_counter))
+
+        if only:
+            field_names = list(f for f in only if f in field_names)
+        elif exclude:
+            field_names = list(f for f in field_names if f not in exclude)
+
+        converter = cls(converters)
+
+        # Create all fields.
+        field_dict = {}
+        for name in field_names:
+            field = converter.convert(model, props[name], field_args.get(name))
+            if field is not None:
+                field_dict[name] = field
+
+        return field_dict
+
+    @classmethod
+    def model_form(cls, model, base_class=Form, only=None, exclude=None,
+                   field_args=None, converters=None):
+        """
+        Creates and returns a dynamic ``wtforms.Form`` class for a given
+        ``ndb.Model`` class. The form class can be used as it is or serve as a
+        base for extended form classes, which can then mix non-model related i
+        fields, subforms with other model forms, among other possibilities.
+
+        :param model:
+            The ``ndb.Model`` class to generate a form for.
+        :param base_class:
+            Base form class to extend from. Must be a ``wtforms.Form`` i
+            subclass.
+        :param only:
+            An optional iterable with the property names that should be
+            included in the form. Only these properties will have fields.
+        :param exclude:
+            An optional iterable with the property names that should be i
+            excluded from the form. All other properties will have fields.
+        :param field_args:
+            An optional dictionary of field names mapping to keyword arguments
+            used to construct each field object.
+        :param converter:
+            A converter to generate the fields based on the model properties.
+            If not set, ``ModelConverter`` is used.
+        """
+        # Extract the fields from the model.
+        field_dict = cls.fields_for_model(model, only, exclude, field_args,
+                                          converters)
+
+        # Return a dynamically created form class, extending from base_class
+        # and including the created fields as properties.
+        return type(model._get_kind() + 'Form', (base_class,), field_dict)
 
 
 class ModelConverter(ModelConverterBase):
@@ -386,78 +486,16 @@ class ModelConverter(ModelConverterBase):
 def model_fields(model, only=None, exclude=None, field_args=None,
                  converter=None):
     """
-    Extracts and returns a dictionary of form fields for a given
-    ``db.Model`` class.
-
-    :param model:
-        The ``db.Model`` class to extract fields from.
-    :param only:
-        An optional iterable with the property names that should be included in
-        the form. Only these properties will have fields.
-    :param exclude:
-        An optional iterable with the property names that should be excluded
-        from the form. All other properties will have fields.
-    :param field_args:
-        An optional dictionary of field names mapping to a keyword arguments
-        used to construct each field object.
-    :param converter:
-        A converter to generate the fields based on the model properties. If
-        not set, ``ModelConverter`` is used.
+    Legacy function, see `Converter.fields_for_model`
     """
-    converter = converter or ModelConverter()
-    field_args = field_args or {}
-
-    # Get the field names we want to include or exclude, starting with the
-    # full list of model properties.
-    props = model._properties
-    field_names = list(
-        x[0] for x in
-        sorted(props.items(), key=lambda x: x[1]._creation_counter))
-
-    if only:
-        field_names = list(f for f in only if f in field_names)
-    elif exclude:
-        field_names = list(f for f in field_names if f not in exclude)
-
-    # Create all fields.
-    field_dict = {}
-    for name in field_names:
-        field = converter.convert(model, props[name], field_args.get(name))
-        if field is not None:
-            field_dict[name] = field
-
-    return field_dict
+    return converter.fields_for_model(model, only, exclude, field_args)
 
 
 def model_form(model, base_class=Form, only=None, exclude=None,
                field_args=None, converter=None):
     """
-    Creates and returns a dynamic ``wtforms.Form`` class for a given
-    ``ndb.Model`` class. The form class can be used as it is or serve as a base
-    for extended form classes, which can then mix non-model related fields,
-    subforms with other model forms, among other possibilities.
-
-    :param model:
-        The ``ndb.Model`` class to generate a form for.
-    :param base_class:
-        Base form class to extend from. Must be a ``wtforms.Form`` subclass.
-    :param only:
-        An optional iterable with the property names that should be included in
-        the form. Only these properties will have fields.
-    :param exclude:
-        An optional iterable with the property names that should be excluded
-        from the form. All other properties will have fields.
-    :param field_args:
-        An optional dictionary of field names mapping to keyword arguments
-        used to construct each field object.
-    :param converter:
-        A converter to generate the fields based on the model properties. If
-        not set, ``ModelConverter`` is used.
+    Legacy function, see `Converter.model_form`
     """
-    # Extract the fields from the model.
-    field_dict = model_fields(model, only, exclude, field_args, converter)
-
-    # Return a dynamically created form class, extending from base_class and
-    # including the created fields as properties.
-    return type(model._get_kind() + 'Form', (base_class,), field_dict)
+    converter = converter or ModelConverter()
+    return converter.model_form(model, base_class, only, exclude, field_args)
 
