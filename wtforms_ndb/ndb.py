@@ -45,7 +45,7 @@ include just a set of properties. For example:
     # Generate a form based on the model, only including 'name' and 'age'.
     ContactForm = model_form(Contact, only=('name', 'age'))
 
-The form can be generated setting field arguments:
+The form can be generated setting field arguments, or field instances:
 
 .. code-block:: python
 
@@ -57,7 +57,8 @@ The form can be generated setting field arguments:
         'age': {
             'label': 'Age',
             'validators': [validators.NumberRange(min=14, max=99)],
-        }
+        },
+        'is_admin': wtforms.BooleanField(default=True)
     })
 
 The class returned by ``model_form()`` can be used as a base class for forms
@@ -99,6 +100,7 @@ class:
 
 from wtforms import Form, validators, fields as f
 from wtforms.compat import string_types
+from wtforms.fields.core import UnboundField
 
 from .fields import GeoPtPropertyField,\
     KeyPropertyField, RepeatedKeyPropertyField,\
@@ -150,8 +152,12 @@ class ModelConverterBase(object):
         :param prop:
             The model property: a ``db.Property`` instance.
         :param field_args:
-            Optional keyword arguments to construct the field.
+            Optional keyword arguments to construct the field or an
+            UnboundField instance (i.e. Field declaration).
         """
+        if isinstance(field_args, UnboundField):
+            return field_args
+
         prop_type_name = self.get_prop_type_name(prop, field_args)
 
         kwargs = {
