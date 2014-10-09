@@ -11,7 +11,7 @@ def read(fname):
 
 setup(
     name='wtforms-ndb',
-    version='0.0.1b',
+    version='0.0.2',
     description='Wtforms mapper for Appengine\'s NDB library.',
     #long_description=read('README.md'),
     author='Chris Targett',
