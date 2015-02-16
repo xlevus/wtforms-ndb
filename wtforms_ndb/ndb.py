@@ -128,6 +128,10 @@ def get_IntegerField(kwargs):
 
 
 class ModelConverterBase(object):
+    SKIPPED_PROPERTY_TYPES = [
+        '_ClassKeyProperty',
+    ]
+
     def __init__(self, converters=None):
         """
         Constructs the converter, setting the converter callables.
@@ -159,6 +163,9 @@ class ModelConverterBase(object):
             return field_args
 
         prop_type_name = self.get_prop_type_name(prop, field_args)
+
+        if prop_type_name in self.SKIPPED_PROPERTY_TYPES:
+            return None
 
         kwargs = {
             'label': prop._code_name.replace('_', ' ').title(),
