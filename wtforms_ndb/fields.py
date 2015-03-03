@@ -50,7 +50,7 @@ class KeyPropertyField(fields.SelectFieldBase):
     def _get_data(self):
         if self._formdata is not None:
             for obj in self.query:
-                if str(obj.key.id()) == self._formdata:
+                if obj.key.urlsafe() == self._formdata:
                     self._set_data(obj)
                     break
         return self._data
@@ -66,7 +66,7 @@ class KeyPropertyField(fields.SelectFieldBase):
             yield ('__None', self.blank_text, self.data is None)
 
         for obj in self.query:
-            key = str(obj.key.id())
+            key = obj.key.urlsafe()
             label = self.get_label(obj)
             yield (key, label, (self.data.key == obj.key) if self.data else False)
 
@@ -104,7 +104,7 @@ class SelectMultipleMixin(object):
 
     def iter_choices(self):
         for obj  in self.query:
-            key = str(obj.key.id())
+            key = obj.key.urlsafe()
             label = self.get_label(obj)
             selected = self.data is not None and obj in self.data
             yield (key, label, selected)
@@ -128,7 +128,7 @@ class SelectMultipleMixin(object):
 
     def _get_data(self):
         if self._formdata is not None:
-            m = {str(obj.key.id()): obj for obj in self.query}
+            m = {obj.key.urlsafe(): obj for obj in self.query}
             self._set_data([m.get(x, x) for x in self._formdata])
         return self._data
 
