@@ -1,4 +1,5 @@
 from __future__ import unicode_literals
+import logging
 
 import decimal
 import operator
@@ -103,10 +104,16 @@ class SelectMultipleMixin(object):
     widget = widgets.Select(multiple=True)
 
     def iter_choices(self):
+        if self.data:
+            data_keys = [obj.key for obj in self.data]
+        else:
+            data_keys = []
+
         for obj  in self.query:
             key = obj.key.urlsafe()
             label = self.get_label(obj)
-            selected = self.data is not None and obj in self.data
+            selected = obj.key in data_keys
+            logging.debug("%r", obj)
             yield (key, label, selected)
 
     def process_data(self, value):
