@@ -105,7 +105,7 @@ class SelectMultipleMixin(object):
 
     def iter_choices(self):
         if self.data:
-            data_keys = [obj.key for obj in self.data]
+            data_keys = [obj.key for obj in self.data if obj is not None]
         else:
             data_keys = []
 
@@ -147,7 +147,7 @@ class SelectMultipleMixin(object):
 
     def populate_obj(self, obj, name):
         if self.data:
-            setattr(obj, name, [x.key for x in self.data])
+            setattr(obj, name, [x.key for x in self.data if x is not None])
         else:
             setattr(obj, name, [])
 
