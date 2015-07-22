@@ -1,5 +1,4 @@
 from __future__ import unicode_literals
-import logging
 
 import decimal
 import operator
@@ -113,7 +112,6 @@ class SelectMultipleMixin(object):
             key = obj.key.urlsafe()
             label = self.get_label(obj)
             selected = obj.key in data_keys
-            logging.debug("%r", obj)
             yield (key, label, selected)
 
     def process_data(self, value):
